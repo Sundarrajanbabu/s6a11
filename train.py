@@ -6,7 +6,6 @@ from torchvision import datasets, transforms
 from datetime import datetime
 import os
 from tqdm import tqdm
-import sys
 
 class Net(nn.Module):
     def __init__(self):
@@ -61,7 +60,7 @@ def evaluate(model, device, test_loader):
 
 def train():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}", flush=True)
+    print(f"Using device: {device}")
     
     transform = transforms.Compose([
         transforms.ToTensor(),
@@ -80,15 +79,7 @@ def train():
     
     # Training
     model.train()
-    total_batches = len(train_loader)
-    
-    # Use tqdm with file=sys.stdout and force=True for CI environment
-    pbar = tqdm(train_loader, 
-                desc='Training',
-                file=sys.stdout,
-                force=True,
-                ncols=80)
-    
+    pbar = tqdm(train_loader, desc='Training')
     for batch_idx, (data, target) in enumerate(pbar):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
@@ -97,13 +88,11 @@ def train():
         loss.backward()
         optimizer.step()
         
-        # More verbose progress update
-        print(f'Batch [{batch_idx+1}/{total_batches}] Loss: {loss.item():.6f}', flush=True)
         pbar.set_postfix({'loss': f'{loss.item():.6f}'})
     
     # Evaluate
     accuracy = evaluate(model, device, test_loader)
-    print(f'\nTest Accuracy: {accuracy:.2f}%', flush=True)
+    print(f'\nTest Accuracy: {accuracy:.2f}%')
     
     # Save model with timestamp and accuracy
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -114,7 +103,7 @@ def train():
 
 if __name__ == "__main__":
     save_path = train()
-    print(f"\nModel saved to: {save_path}", flush=True)
+    print(f"\nModel saved to: {save_path}")
     
     # Model summary
     from torchsummary import summary
