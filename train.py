@@ -6,6 +6,8 @@ from torchvision import datasets, transforms
 from datetime import datetime
 import os
 from tqdm import tqdm
+import glob
+import sys
 
 class Net(nn.Module):
     def __init__(self):
@@ -61,7 +63,23 @@ def evaluate(model, device, test_loader):
     accuracy = 100. * correct / total
     return accuracy
 
+def clean_old_models():
+    """Delete all previously saved model files"""
+    model_files = glob.glob('model_*.pth')
+    for f in model_files:
+        try:
+            os.remove(f)
+            print(f"Deleted old model: {f}")
+        except OSError as e:
+            print(f"Error deleting {f}: {e}")
+
+def is_ci_environment():
+    """Check if we're running in a CI environment"""
+    return 'CI' in os.environ
+
 def train():
+    clean_old_models()
+    
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
@@ -70,7 +88,6 @@ def train():
         transforms.Normalize((0.1307,), (0.3081,))
     ])
     
-    # Load both training and test datasets
     train_dataset = datasets.MNIST('data', train=True, download=True, transform=transform)
     test_dataset = datasets.MNIST('data', train=False, download=True, transform=transform)
     
@@ -82,16 +99,33 @@ def train():
     
     # Training
     model.train()
-    pbar = tqdm(train_loader, desc='Training')
-    for batch_idx, (data, target) in enumerate(pbar):
-        data, target = data.to(device), target.to(device)
-        optimizer.zero_grad()
-        output = model(data)
-        loss = F.nll_loss(output, target)
-        loss.backward()
-        optimizer.step()
-        
-        pbar.set_postfix({'loss': f'{loss.item():.6f}'})
+    total_batches = len(train_loader)
+    
+    # Adjust progress reporting based on environment
+    if is_ci_environment():
+        print("Training started...")
+        for batch_idx, (data, target) in enumerate(train_loader):
+            data, target = data.to(device), target.to(device)
+            optimizer.zero_grad()
+            output = model(data)
+            loss = F.nll_loss(output, target)
+            loss.backward()
+            optimizer.step()
+            
+            if batch_idx % 100 == 0:
+                print(f'Progress: {batch_idx}/{total_batches} batches', flush=True)
+    else:
+        # Use tqdm for local development
+        pbar = tqdm(train_loader, desc='Training')
+        for batch_idx, (data, target) in enumerate(pbar):
+            data, target = data.to(device), target.to(device)
+            optimizer.zero_grad()
+            output = model(data)
+            loss = F.nll_loss(output, target)
+            loss.backward()
+            optimizer.step()
+            
+            pbar.set_postfix({'loss': f'{loss.item():.6f}'})
     
     # Evaluate
     accuracy = evaluate(model, device, test_loader)
@@ -108,9 +142,10 @@ if __name__ == "__main__":
     save_path = train()
     print(f"\nModel saved to: {save_path}")
     
-    # Model summary
-    from torchsummary import summary
-    use_cuda = torch.cuda.is_available()
-    device = torch.device("cuda" if use_cuda else "cpu")
-    model = Net().to(device)
-    summary(model, input_size=(1, 28, 28)) 
+    if not is_ci_environment():
+        # Only show model summary in local environment
+        from torchsummary import summary
+        use_cuda = torch.cuda.is_available()
+        device = torch.device("cuda" if use_cuda else "cpu")
+        model = Net().to(device)
+        summary(model, input_size=(1, 28, 28)) 
