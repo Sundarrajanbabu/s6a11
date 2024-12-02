@@ -22,6 +22,26 @@ jobs:
     - name: Train model
       run: |
         python train.py
+
+    - name: "📈 Validation Accuracy Check"
+      run: |
+        python -c "
+        from train import Net, evaluate
+        import torch
+        from torchvision import datasets, transforms
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        model = Net().to(device)
+        model.load_state_dict(torch.load(max(glob.glob('model_*.pth'), key=os.path.getctime)))
+        transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+        val_dataset = datasets.MNIST('data', train=True, download=True, transform=transform)
+        val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=1000)
+        val_acc = evaluate(model, device, val_loader)
+        print(f'Validation Accuracy: {val_acc:.2f}%')
+        "
+
+    - name: "📊 Test Accuracy Check (> 99.4%)"
+      run: |
+        pytest test_model.py -v
         
     - name: "🔢 Architecture Check: Parameters < 20K"
       run: |
@@ -66,10 +86,6 @@ jobs:
         print(f'Fully Connected Layers Found: {fc_count}')
         assert fc_count > 0, 'Model must include Fully Connected layer'
         "
-        
-    - name: "📊 Performance Check: Accuracy > 99.4%"
-      run: |
-        pytest test_model.py -v
         
     - name: Upload trained model
       uses: actions/upload-artifact@v4
