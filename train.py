@@ -97,39 +97,44 @@ def train():
     model = Net().to(device)
     optimizer = optim.SGD(model.parameters(), lr=0.05, momentum=0.8)
     
-    # Training
-    model.train()
-    total_batches = len(train_loader)
+    # Training for 18 epochs
+    num_epochs = 18
+    for epoch in range(num_epochs):
+        # Training
+        model.train()
+        total_batches = len(train_loader)
+        
+        if is_ci_environment():
+            print(f"\nEpoch {epoch+1}/{num_epochs}")
+            for batch_idx, (data, target) in enumerate(train_loader):
+                data, target = data.to(device), target.to(device)
+                optimizer.zero_grad()
+                output = model(data)
+                loss = F.nll_loss(output, target)
+                loss.backward()
+                optimizer.step()
+                
+                if batch_idx % 100 == 0:
+                    print(f'Epoch {epoch+1}: Progress {batch_idx}/{total_batches} batches', flush=True)
+        else:
+            pbar = tqdm(train_loader, desc=f'Epoch {epoch+1}/{num_epochs}')
+            for batch_idx, (data, target) in enumerate(pbar):
+                data, target = data.to(device), target.to(device)
+                optimizer.zero_grad()
+                output = model(data)
+                loss = F.nll_loss(output, target)
+                loss.backward()
+                optimizer.step()
+                
+                pbar.set_postfix({'loss': f'{loss.item():.6f}'})
+        
+        # Evaluate after each epoch
+        accuracy = evaluate(model, device, test_loader)
+        print(f'Epoch {epoch+1}/{num_epochs} - Test Accuracy: {accuracy:.2f}%')
     
-    # Adjust progress reporting based on environment
-    if is_ci_environment():
-        print("Training started...")
-        for batch_idx, (data, target) in enumerate(train_loader):
-            data, target = data.to(device), target.to(device)
-            optimizer.zero_grad()
-            output = model(data)
-            loss = F.nll_loss(output, target)
-            loss.backward()
-            optimizer.step()
-            
-            if batch_idx % 100 == 0:
-                print(f'Progress: {batch_idx}/{total_batches} batches', flush=True)
-    else:
-        # Use tqdm for local development
-        pbar = tqdm(train_loader, desc='Training')
-        for batch_idx, (data, target) in enumerate(pbar):
-            data, target = data.to(device), target.to(device)
-            optimizer.zero_grad()
-            output = model(data)
-            loss = F.nll_loss(output, target)
-            loss.backward()
-            optimizer.step()
-            
-            pbar.set_postfix({'loss': f'{loss.item():.6f}'})
-    
-    # Evaluate
+    # Final evaluation
     accuracy = evaluate(model, device, test_loader)
-    print(f'\nTest Accuracy: {accuracy:.2f}%')
+    print(f'\nFinal Test Accuracy: {accuracy:.2f}%')
     
     # Save model with timestamp and accuracy
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
