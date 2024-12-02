@@ -10,18 +10,21 @@ from tqdm import tqdm
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
+        # First block
         self.conv1 = nn.Conv2d(1, 8, 3, padding=1)
         self.bn1 = nn.BatchNorm2d(8)
         self.conv3 = nn.Conv2d(8, 8, 3, stride=2, padding=1)
         self.bn3 = nn.BatchNorm2d(8)
         self.pool1 = nn.MaxPool2d(2, 2)
 
+        # Second block
         self.conv4 = nn.Conv2d(8, 16, 3, padding=1)
         self.bn4 = nn.BatchNorm2d(16)
         self.conv6 = nn.Conv2d(16, 16, 3, stride=2, padding=1)
         self.bn6 = nn.BatchNorm2d(16)
         self.pool2 = nn.MaxPool2d(2, 2)
 
+        # Third block
         self.conv7 = nn.Conv2d(16, 32, 3, padding=1)
         self.bn7 = nn.BatchNorm2d(32)
         self.conv9 = nn.Conv2d(32, 32, 3, stride=2, padding=1)
