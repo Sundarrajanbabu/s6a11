@@ -78,7 +78,7 @@ def train():
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1000)
     
     model = Net().to(device)
-    optimizer = optim.Adam(model.parameters())
+    optimizer = optim.SGD(model.parameters(), lr=0.05, momentum=0.8)
     
     # Training
     model.train()
