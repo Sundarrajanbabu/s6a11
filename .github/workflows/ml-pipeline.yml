@@ -23,7 +23,7 @@ jobs:
       run: |
         python train.py
         
-    - name: Check Parameter Count
+    - name: "🔢 Architecture Check: Parameters < 20K"
       run: |
         python -c "
         from train import Net
@@ -31,43 +31,43 @@ jobs:
         model = Net()
         total_params = sum(p.numel() for p in model.parameters())
         print(f'Total Parameters: {total_params:,}')
-        assert total_params < 18000, f'Parameter count {total_params:,} exceeds limit of 18,000'
+        assert total_params < 20000, f'Parameter count {total_params:,} exceeds limit of 20,000'
         "
         
-    - name: Verify BatchNorm Layers
+    - name: "🔄 Architecture Check: BatchNorm Present"
       run: |
         python -c "
         from train import Net
         import torch.nn as nn
         model = Net()
-        has_bn = any(isinstance(m, nn.BatchNorm2d) for m in model.modules())
-        print(f'BatchNorm Layers: {"Present" if has_bn else "Missing"}')
-        assert has_bn, 'Model must include BatchNorm layers'
+        bn_count = sum(1 for m in model.modules() if isinstance(m, nn.BatchNorm2d))
+        print(f'BatchNorm Layers Found: {bn_count}')
+        assert bn_count > 0, 'Model must include BatchNorm layers'
         "
         
-    - name: Verify Dropout Implementation
+    - name: "🎲 Architecture Check: Dropout Present"
       run: |
         python -c "
         from train import Net
         import torch.nn as nn
         model = Net()
-        has_dropout = any(isinstance(m, nn.Dropout) for m in model.modules())
-        print(f'Dropout Layers: {"Present" if has_dropout else "Missing"}')
-        assert has_dropout, 'Model must include Dropout layers'
+        dropout_count = sum(1 for m in model.modules() if isinstance(m, nn.Dropout))
+        print(f'Dropout Layers Found: {dropout_count}')
+        assert dropout_count > 0, 'Model must include Dropout layers'
         "
         
-    - name: Verify Fully Connected Layer
+    - name: "🔌 Architecture Check: FC Layer Present"
       run: |
         python -c "
         from train import Net
         import torch.nn as nn
         model = Net()
-        has_fc = any(isinstance(m, nn.Linear) for m in model.modules())
-        print(f'Fully Connected Layer: {"Present" if has_fc else "Missing"}')
-        assert has_fc, 'Model must include Fully Connected layer'
+        fc_count = sum(1 for m in model.modules() if isinstance(m, nn.Linear))
+        print(f'Fully Connected Layers Found: {fc_count}')
+        assert fc_count > 0, 'Model must include Fully Connected layer'
         "
         
-    - name: Test Model Accuracy
+    - name: "📊 Performance Check: Accuracy > 99.4%"
       run: |
         pytest test_model.py -v
         

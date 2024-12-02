@@ -115,19 +115,18 @@ def train():
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1000)
     
     model = Net().to(device)
-    # Added weight decay and adjusted initial learning rate
     optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9, weight_decay=1e-4)
     
-    # Training for 18 epochs
-    num_epochs = 18
+    # Updated to 19 epochs
+    num_epochs = 19
     best_accuracy = 0
     best_model_path = None
     
-    # Learning rate milestones
+    # Adjusted learning rate schedule for 19 epochs
     lr_schedule = {
         8: 0.05,   # Reduce to 0.05 at epoch 8
-        12: 0.01,  # Reduce to 0.01 at epoch 12
-        15: 0.005  # Final reduction at epoch 15
+        13: 0.01,  # Reduce to 0.01 at epoch 13
+        16: 0.005  # Final reduction at epoch 16
     }
     
     for epoch in range(num_epochs):
