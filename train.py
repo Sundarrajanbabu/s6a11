@@ -97,7 +97,6 @@ def train():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
-    # Data augmentation and transforms remain same
     transform_train = transforms.Compose([
         transforms.RandomAffine(degrees=5, translate=(0.1, 0.1), scale=(0.9, 1.1)),
         transforms.ToTensor(),
@@ -109,19 +108,15 @@ def train():
         transforms.Normalize((0.1307,), (0.3081,))
     ])
     
-    # Load full training dataset
-    full_dataset = datasets.MNIST('data', train=True, download=True, transform=transform_train)
-    
-    # Split into train and test
-    train_size = 50000
-    test_size = len(full_dataset) - train_size
-    train_dataset, test_dataset = random_split(full_dataset, [train_size, test_size])
+    # Use official MNIST train/test split
+    train_dataset = datasets.MNIST('data', train=True, download=True, transform=transform_train)
+    val_dataset = datasets.MNIST('data', train=False, download=True, transform=transform_test)
     
     print(f"Training set size: {len(train_dataset)}")
-    print(f"Test set size: {len(test_dataset)}")
+    print(f"Validation set size: {len(val_dataset)}")
     
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=64, shuffle=True)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1000)
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=1000)
     
     model = Net().to(device)
     optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9, weight_decay=1e-4)
@@ -178,7 +173,7 @@ def train():
                 })
         
         # Evaluate after each epoch
-        accuracy = evaluate(model, device, test_loader)
+        accuracy = evaluate(model, device, val_loader)
         print(f'Epoch {epoch+1}/{num_epochs} - Test Accuracy: {accuracy:.2f}%')
         
         # Save best model

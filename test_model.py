@@ -44,19 +44,15 @@ def test_model_accuracy():
         transforms.Normalize((0.1307,), (0.3081,))
     ])
     
-    # Load full dataset and split
-    full_dataset = datasets.MNIST('data', train=True, download=True, transform=transform)
-    train_size = 50000
-    test_size = len(full_dataset) - train_size
-    _, test_dataset = random_split(full_dataset, [train_size, test_size])
-    
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1000)
+    # Use official MNIST test set as validation
+    val_dataset = datasets.MNIST('data', train=False, download=True, transform=transform)
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=1000)
     
     correct = 0
     total = 0
     
     with torch.no_grad():
-        for data, target in test_loader:
+        for data, target in val_loader:
             data, target = data.to(device), target.to(device)
             output = model(data)
             pred = output.argmax(dim=1)
