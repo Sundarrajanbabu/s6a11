@@ -144,22 +144,22 @@ def train():
     print(f"Training set size: {len(train_dataset)}")
     print(f"Validation set size: {len(val_dataset)}")
     
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=64, shuffle=True)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=1000)
     
     model = Net().to(device)
-    optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9, weight_decay=1e-4)
+    optimizer = optim.SGD(model.parameters(), lr=0.15, momentum=0.95, weight_decay=1e-4)
     
-    # Updated to 19 epochs
     num_epochs = 19
     best_accuracy = 0
     best_model_path = None
     
-    # Adjusted learning rate schedule for 19 epochs
     lr_schedule = {
-        8: 0.05,   # Reduce to 0.05 at epoch 8
-        13: 0.01,  # Reduce to 0.01 at epoch 13
-        16: 0.005  # Final reduction at epoch 16
+        6: 0.1,    # First reduction at epoch 6
+        10: 0.05,  # Second reduction at epoch 10
+        13: 0.025, # Third reduction at epoch 13
+        15: 0.01,  # Fourth reduction at epoch 15
+        17: 0.005  # Final reduction at epoch 17
     }
     
     for epoch in range(num_epochs):
