@@ -224,10 +224,19 @@ if __name__ == "__main__":
     save_path = train()
     print(f"\nModel saved to: {save_path}")
     
+    # Enhanced model summary
+    model = Net()
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    
+    print("\nModel Architecture Summary:")
+    print("=" * 40)
+    print(f"Total Parameters: {total_params:,}")
+    print(f"Trainable Parameters: {trainable_params:,}")
+    print(f"Non-trainable Parameters: {total_params - trainable_params:,}")
+    
     if not is_ci_environment():
-        # Only show model summary in local environment
         from torchsummary import summary
-        use_cuda = torch.cuda.is_available()
-        device = torch.device("cuda" if use_cuda else "cpu")
-        model = Net().to(device)
-        summary(model, input_size=(1, 28, 28)) 
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model = model.to(device)
+        summary(model, input_size=(1, 28, 28))
