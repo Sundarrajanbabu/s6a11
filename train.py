@@ -91,24 +91,50 @@ def is_ci_environment():
     """Check if we're running in a CI environment"""
     return 'CI' in os.environ
 
+def calculate_normalization_values(dataset):
+    """Calculate mean and std of the dataset"""
+    loader = torch.utils.data.DataLoader(dataset, batch_size=1000, shuffle=False)
+    mean = 0.
+    std = 0.
+    for images, _ in loader:
+        batch_samples = images.size(0)
+        images = images.view(batch_samples, images.size(1), -1)
+        mean += images.mean(2).sum(0)
+        std += images.std(2).sum(0)
+    
+    mean /= len(dataset)
+    std /= len(dataset)
+    return mean.item(), std.item()
+
 def train():
     clean_old_models()
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
+    # First load dataset without normalization to calculate values
+    base_transform = transforms.Compose([
+        transforms.ToTensor(),
+    ])
+    
+    temp_dataset = datasets.MNIST('data', train=True, download=True, transform=base_transform)
+    mean, std = calculate_normalization_values(temp_dataset)
+    print(f"Dataset statistics - Mean: {mean:.4f}, Std: {std:.4f}")
+    
+    # Now create transforms with calculated normalization values
     transform_train = transforms.Compose([
         transforms.RandomAffine(degrees=5, translate=(0.1, 0.1), scale=(0.9, 1.1)),
         transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
+        transforms.Normalize((mean,), (std,)),
+        transforms.RandomErasing(p=0.1, scale=(0.02, 0.1))  # Additional augmentation
     ])
     
     transform_test = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
+        transforms.Normalize((mean,), (std,))
     ])
     
-    # Use official MNIST train/test split
+    # Use official MNIST train/test split with new transforms
     train_dataset = datasets.MNIST('data', train=True, download=True, transform=transform_train)
     val_dataset = datasets.MNIST('data', train=False, download=True, transform=transform_test)
     

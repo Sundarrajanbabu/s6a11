@@ -39,9 +39,22 @@ def test_model_accuracy():
     model.load_state_dict(torch.load(get_latest_model()))
     model.eval()
     
+    # Calculate normalization values
+    base_transform = transforms.Compose([transforms.ToTensor()])
+    temp_dataset = datasets.MNIST('data', train=True, download=True, transform=base_transform)
+    mean, std = 0., 0.
+    loader = torch.utils.data.DataLoader(temp_dataset, batch_size=1000, shuffle=False)
+    for images, _ in loader:
+        batch_samples = images.size(0)
+        images = images.view(batch_samples, images.size(1), -1)
+        mean += images.mean(2).sum(0)
+        std += images.std(2).sum(0)
+    mean /= len(temp_dataset)
+    std /= len(temp_dataset)
+    
     transform = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
+        transforms.Normalize((mean.item(),), (std.item(),))
     ])
     
     # Use official MNIST test set as validation
