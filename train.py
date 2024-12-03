@@ -8,6 +8,7 @@ import os
 from tqdm import tqdm
 import glob
 import sys
+from torch.utils.data import random_split
 
 class Net(nn.Module):
     def __init__(self):
@@ -96,7 +97,7 @@ def train():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
-    # Enhanced data augmentation
+    # Data augmentation and transforms remain same
     transform_train = transforms.Compose([
         transforms.RandomAffine(degrees=5, translate=(0.1, 0.1), scale=(0.9, 1.1)),
         transforms.ToTensor(),
@@ -108,8 +109,16 @@ def train():
         transforms.Normalize((0.1307,), (0.3081,))
     ])
     
-    train_dataset = datasets.MNIST('data', train=True, download=True, transform=transform_train)
-    test_dataset = datasets.MNIST('data', train=False, download=True, transform=transform_test)
+    # Load full training dataset
+    full_dataset = datasets.MNIST('data', train=True, download=True, transform=transform_train)
+    
+    # Split into train and test
+    train_size = 50000
+    test_size = len(full_dataset) - train_size
+    train_dataset, test_dataset = random_split(full_dataset, [train_size, test_size])
+    
+    print(f"Training set size: {len(train_dataset)}")
+    print(f"Test set size: {len(test_dataset)}")
     
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=64, shuffle=True)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1000)

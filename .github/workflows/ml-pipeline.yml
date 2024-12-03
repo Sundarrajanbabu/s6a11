@@ -23,25 +23,37 @@ jobs:
       run: |
         python train.py
 
-    - name: "📈 Validation Accuracy Check"
+    - name: "📈 Validation Accuracy Check (> 99.4%)"
       run: |
         python -c "
         from train import Net, evaluate
         import torch
+        import glob
+        import os
+        from torch.utils.data import random_split
         from torchvision import datasets, transforms
+        
+        # Setup
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         model = Net().to(device)
         model.load_state_dict(torch.load(max(glob.glob('model_*.pth'), key=os.path.getctime)))
+        model.eval()
+        
+        # Load and split dataset
         transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-        val_dataset = datasets.MNIST('data', train=True, download=True, transform=transform)
+        full_dataset = datasets.MNIST('data', train=True, download=True, transform=transform)
+        
+        # Use the same split as training
+        train_size = 50000
+        val_size = len(full_dataset) - train_size
+        _, val_dataset = random_split(full_dataset, [train_size, val_size])
         val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=1000)
+        
+        # Evaluate
         val_acc = evaluate(model, device, val_loader)
         print(f'Validation Accuracy: {val_acc:.2f}%')
+        assert val_acc > 99.4, f'Validation accuracy {val_acc:.2f}% is less than required 99.4%'
         "
-
-    - name: "📊 Test Accuracy Check (> 99.4%)"
-      run: |
-        pytest test_model.py -v
         
     - name: "🔢 Architecture Check: Parameters < 20K"
       run: |

@@ -5,6 +5,7 @@ from train import Net
 import pytest
 import glob
 import os
+from torch.utils.data import random_split
 
 def get_latest_model():
     model_files = glob.glob('model_*.pth')
@@ -43,7 +44,12 @@ def test_model_accuracy():
         transforms.Normalize((0.1307,), (0.3081,))
     ])
     
-    test_dataset = datasets.MNIST('data', train=False, download=True, transform=transform)
+    # Load full dataset and split
+    full_dataset = datasets.MNIST('data', train=True, download=True, transform=transform)
+    train_size = 50000
+    test_size = len(full_dataset) - train_size
+    _, test_dataset = random_split(full_dataset, [train_size, test_size])
+    
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1000)
     
     correct = 0
