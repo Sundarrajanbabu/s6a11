@@ -27,35 +27,38 @@ class Net(nn.Module):
         self.bn6 = nn.BatchNorm2d(16)
         self.pool2 = nn.MaxPool2d(2, 2)
 
-        # Third block
+        # Third block - Moved pooling closer to prediction
         self.conv7 = nn.Conv2d(16, 32, 3, padding=1)
         self.bn7 = nn.BatchNorm2d(32)
-        self.conv9 = nn.Conv2d(32, 32, 3, stride=2, padding=1)
-        self.bn9 = nn.BatchNorm2d(32)
+        self.conv9 = nn.Conv2d(32, 32, 3, padding=1)  # Removed stride=2
+        self.pool3 = nn.MaxPool2d(2, 2)  # Added pooling after conv9
+        self.bn9 = nn.BatchNorm2d(32)  # Moved BN after pooling
 
         # Modified dropout strategy
-        self.dropout1 = nn.Dropout(0.05)    # Very light dropout for early features
-        self.dropout2 = nn.Dropout(0.1)     # Light dropout for mid features
-        self.dropout3 = nn.Dropout(0.25)    # Moderate dropout before final classification
+        self.dropout1 = nn.Dropout(0.05)
+        self.dropout2 = nn.Dropout(0.1)
+        self.dropout3 = nn.Dropout(0.25)
         
         self.fc = nn.Sequential(
             nn.Linear(32, 10)
         )
 
     def forward(self, x):
-        # First block with very light dropout
+        # First block
         x = F.relu(self.bn1(self.conv1(x)))
         x = self.pool1(F.relu(self.bn3(self.conv3(x))))
         x = self.dropout1(x)
         
-        # Second block with light dropout
+        # Second block
         x = F.relu(self.bn4(self.conv4(x)))
         x = self.pool2(F.relu(self.bn6(self.conv6(x))))
         x = self.dropout2(x)
         
-        # Third block with moderate dropout
+        # Third block - Modified order
         x = F.relu(self.bn7(self.conv7(x)))
-        x = F.relu(self.bn9(self.conv9(x)))
+        x = F.relu(self.conv9(x))
+        x = self.pool3(x)  # Pooling closer to prediction
+        x = self.bn9(x)    # BN after pooling
         x = self.dropout3(x)
         
         x = x.view(x.size(0), -1)
